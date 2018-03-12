@@ -157,6 +157,24 @@ final class PaginationExtension implements ContextAwareQueryResultCollectionExte
         return new Paginator($doctrineOrmPaginator);
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function getQueryResult(QueryBuilder $queryBuilder, Query $query, string $resourceClass = null, string $operationName = null, array $context = [])
+    {
+        $doctrineOrmPaginator = new DoctrineOrmPaginator($query, $this->useFetchJoinCollection($queryBuilder));
+        $doctrineOrmPaginator->setUseOutputWalkers($this->useOutputWalkers($queryBuilder));
+
+        $resourceMetadata = null === $resourceClass ? null : $this->resourceMetadataFactory->create($resourceClass);
+
+        if ($this->isPartialPaginationEnabled($this->requestStack->getCurrentRequest(), $resourceMetadata, $operationName)) {
+            return new class($doctrineOrmPaginator) extends AbstractPaginator {
+            };
+        }
+
+        return new Paginator($doctrineOrmPaginator);
+    }
+
     private function isPartialPaginationEnabled(Request $request = null, ResourceMetadata $resourceMetadata = null, string $operationName = null): bool
     {
         $enabled = $this->partial;
